@@ -18,8 +18,16 @@ func list_pr(c *cli.Context) {
 		os.Exit(1)
 	}
 
-	fmt.Printf("%s\n", REMOTE_REFS)
-	fmt.Printf("%s", CONFIG)
+	refSpec := fmt.Sprintf("refs/pull/*/head:refs/remotes/%s/pr/*", CONFIG["DEFAULT_REMOTE_REF"])
+	pulls, err := exec.Command("git", "fetch", CONFIG["DEFAULT_REMOTE_REF"], refSpec).Output()
+	if err != nil {
+		fmt.Println("Could not fetch remote Pull Requests")
+		os.Exit(1)
+	}
+
+	branches, _ := exec.Command("git", "branch", "-a").Output()
+	fmt.Printf("%s\n", branches)
+	fmt.Printf("%s\n", pulls)
 }
 
 func apply_pr(c *cli.Context) {
