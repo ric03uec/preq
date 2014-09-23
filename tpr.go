@@ -12,26 +12,39 @@ import (
 var CONFIG = make(map[string]string)
 var REMOTE_REFS = make([]string, 0)
 
-func list_pr(c *cli.Context) {
-	if err := validate_repo(c); err != nil {
+func listPr(c *cli.Context) {
+	if err := validateRepo(c); err != nil {
 		fmt.Println("Could not list Pull Reqests")
 		os.Exit(1)
 	}
 
 	refSpec := fmt.Sprintf("refs/pull/*/head:refs/remotes/%s/pr/*", CONFIG["DEFAULT_REMOTE_REF"])
-	pulls, err := exec.Command("git", "fetch", CONFIG["DEFAULT_REMOTE_REF"], refSpec).Output()
+
+	_, err := exec.Command("git", "fetch", CONFIG["DEFAULT_REMOTE_REF"], refSpec).Output()
 	if err != nil {
 		fmt.Println("Could not fetch remote Pull Requests")
 		os.Exit(1)
 	}
 
-	branches, _ := exec.Command("git", "branch", "-a").Output()
-	fmt.Printf("%s\n", branches)
-	fmt.Printf("%s\n", pulls)
+	outputString , _ := exec.Command("git", "branch", "-r").Output()
+	branches := fmt.Sprintf("%s", string(outputString[:]))
+	refs := strings.Split(branches, "\n")
+
+	for i := range refs {
+		remoteBranch := refs[i]
+		refSplits := strings.Split(remoteBranch, "/")
+		if length := len(refSplits); length == 3  {
+			if strings.TrimSpace(refSplits[0]) == CONFIG["DEFAULT_REMOTE_REF"] {
+				fmt.Printf("%s\n", remoteBranch)
+				fmt.Printf("%s\n", refSplits[2])
+			}
+		}
+	}
+	// filter the branches from default_remote_ref
 }
 
-func apply_pr(c *cli.Context) {
-	if err := validate_repo(c); err != nil {
+func applyPr(c *cli.Context) {
+	if err := validateRepo(c); err != nil {
 		fmt.Println("Could not apply the Pull Request")
 		os.Exit(1)
 	}
@@ -39,9 +52,8 @@ func apply_pr(c *cli.Context) {
 	fmt.Printf("%s\n", args)
 }
 
-func revert_master(c *cli.Context) {
-	if err := validate_repo(c); err != nil {
-		fmt.Println("Could not revert to master branch")
+func revertMaster(c *cli.Context) {
+	if err := validateRepo(c); err != nil { fmt.Println("Could not revert to master branch")
 		os.Exit(1)
 	}
 }
@@ -51,18 +63,18 @@ func switchRef(c *cli.Context) {
 
 }
 
-func validate_repo(c *cli.Context) (err error){
+func validateRepo(c *cli.Context) (err error){
 	_, gitErr := exec.Command("git", "rev-parse").Output()
 	if gitErr != nil {
 		fmt.Println("Current directory not under git version control")
 		return gitErr
 	} else {
-		initialize_config()
+		initializeConfig()
 		return nil
 	}
 }
 
-func initialize_config() {
+func initializeConfig() {
 	output, err := exec.Command("git", "remote", "show").Output()
 
 	if err != nil {
@@ -78,7 +90,7 @@ func initialize_config() {
 	}
 	if len(REMOTE_REFS) == 0 {
 		fmt.Println("No remote refs defined")
-		refName, refUrl := get_ref()
+		refName, refUrl := getRef()
 		_, err := exec.Command("git", "remote", "add", refName, refUrl).Output()
 		if err != nil {
 			fmt.Println("Error while inserting new git ref")
@@ -90,13 +102,13 @@ func initialize_config() {
 		CONFIG["DEFAULT_REMOTE_REF"] = REMOTE_REFS[0]
 	} else {
 		CONFIG["DEFAULT_REMOTE_REF"] = REMOTE_REFS[0]
-		CONFIG["DEFAULT_REMOTE_REF"] = get_default_ref()
+		CONFIG["DEFAULT_REMOTE_REF"] = getDefaultRef()
 	}
 
 	CONFIG["DEFAULT_BRANCH"] = "master"
 }
 
-func get_default_ref() (string) {
+func getDefaultRef() (string) {
 	fmt.Println("Choose ref to set as remote")
 	for index := range REMOTE_REFS {
 		fmt.Println("\t","(", (index+1), ") ", REMOTE_REFS[index])
@@ -108,7 +120,7 @@ func get_default_ref() (string) {
 	return REMOTE_REFS[index - 1]
 }
 
-func get_ref() (string, string) {
+func getRef() (string, string) {
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Print("Enter ref name (e.g. parent): ")
 	name, _ := reader.ReadString('\n')
@@ -131,20 +143,20 @@ func main() {
 			Name: "list",
 			ShortName: "l",
 			Usage: "List of all the Pull Requests",
-			Action: list_pr,
+			Action: listPr,
 
 		},
 		{
 			Name: "apply",
 			ShortName: "a",
 			Usage: "Apply the specified Pull Request",
-			Action: apply_pr,
+			Action: applyPr,
 		},
 		{
 			Name: "revert",
 			ShortName: "r",
 			Usage: "Revert back to master branch",
-			Action: revert_master,
+			Action: revertMaster,
 
 		},
 		{
