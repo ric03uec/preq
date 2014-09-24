@@ -83,6 +83,7 @@ func revertMaster(c *cli.Context) {
 		fmt.Println("Error occured while reverting to master")
 		os.Exit(1)
 	}
+	fmt.Println("Successfully reverted back to master")
 	fmt.Println(fmt.Sprintf("%s", outputString))
 	os.Exit(0)
 }
