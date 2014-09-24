@@ -23,5 +23,6 @@ go_download() {
 mkdir -p $HOME/.bin
 go_download "$BINARY_PATH"
 mv tpr $HOME/.bin
+chmod +x $HOME/.bin/tpr
 echo PATH=$PATH:$HOME/.bin >> $HOME/.bashrc
 . $HOME/.bashrc 2>&1 > /dev/null
