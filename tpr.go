@@ -18,14 +18,6 @@ func listPr(c *cli.Context) {
 		os.Exit(1)
 	}
 
-	refSpec := fmt.Sprintf("refs/pull/*/head:refs/remotes/%s/pr/*", CONFIG["DEFAULT_REMOTE_REF"])
-
-	_, err := exec.Command("git", "fetch", CONFIG["DEFAULT_REMOTE_REF"], refSpec).Output()
-	if err != nil {
-		fmt.Println("Could not fetch remote Pull Requests")
-		os.Exit(1)
-	}
-
 	outputString , _ := exec.Command("git", "branch", "-r").Output()
 	branches := fmt.Sprintf("%s", string(outputString[:]))
 	refs := strings.Split(branches, "\n")
@@ -36,11 +28,9 @@ func listPr(c *cli.Context) {
 		if length := len(refSplits); length == 3  {
 			if strings.TrimSpace(refSplits[0]) == CONFIG["DEFAULT_REMOTE_REF"] {
 				fmt.Printf("%s\n", remoteBranch)
-				fmt.Printf("%s\n", refSplits[2])
 			}
 		}
 	}
-	// filter the branches from default_remote_ref
 }
 
 func applyPr(c *cli.Context) {
@@ -48,19 +38,75 @@ func applyPr(c *cli.Context) {
 		fmt.Println("Could not apply the Pull Request")
 		os.Exit(1)
 	}
-	args := c.Args()
-	fmt.Printf("%s\n", args)
+
+	fmt.Print(fmt.Sprintf("Enter the PR number to apply for ref %s (e.g. 42): ", CONFIG["DEFAULT_REMOTE_REF"]))
+	reader := bufio.NewReader(os.Stdin)
+	pr, _ := reader.ReadString('\n')
+	pr = strings.TrimSpace(pr)
+	prNumber, _ := strconv.Atoi(pr)
+
+	outputString , _ := exec.Command("git", "branch", "-r").Output()
+	branches := fmt.Sprintf("%s", string(outputString[:]))
+	refs := strings.Split(branches, "\n")
+
+	prExists := false
+	for i := range refs {
+		remoteBranch := refs[i]
+		refSplits := strings.Split(remoteBranch, "/")
+		if length := len(refSplits); length == 3  {
+			if strings.TrimSpace(refSplits[0]) == CONFIG["DEFAULT_REMOTE_REF"] {
+				remotePRNumber, _ := strconv.Atoi(refSplits[2])
+				if remotePRNumber == prNumber {
+					prExists = true
+				}
+			}
+		}
+	}
+	if prExists {
+		remoteRefPath := fmt.Sprintf("%s/pr/%s", CONFIG["DEFAULT_REMOTE_REF"], strconv.Itoa(prNumber))
+		_, err := exec.Command("git", "checkout", remoteRefPath).Output()
+		if err != nil {
+			fmt.Println("Error occured while patching ")
+			os.Exit(1)
+		}
+		fmt.Println("Successfully patched branch with ", remoteRefPath)
+		os.Exit(0)
+	} else {
+		fmt.Println("No PR exists for ref : \n Try refreshing using 'tpr fetch'", CONFIG["DEFAULT_REMOTE_REF"])
+		os.Exit(0)
+	}
 }
 
 func revertMaster(c *cli.Context) {
-	if err := validateRepo(c); err != nil { fmt.Println("Could not revert to master branch")
+	outputString, err := exec.Command("git", "checkout", "master").Output()
+	if err != nil {
+		fmt.Println("Error occured while reverting to master")
 		os.Exit(1)
 	}
+	fmt.Println(fmt.Sprintf("%s", outputString))
+	os.Exit(0)
 }
 
 func switchRef(c *cli.Context) {
 	// switch ref
 
+}
+
+func fetch(c *cli.Context) {
+	if err := validateRepo(c); err != nil {
+		fmt.Println("Could not list Pull Reqests")
+		os.Exit(1)
+	}
+
+	fmt.Println("Fetching pull requests for remote ref: ", CONFIG["DEFAULT_REMOTE_REF"])
+	refSpec := fmt.Sprintf("refs/pull/*/head:refs/remotes/%s/pr/*", CONFIG["DEFAULT_REMOTE_REF"])
+
+	_, err := exec.Command("git", "fetch", CONFIG["DEFAULT_REMOTE_REF"], refSpec).Output()
+	if err != nil {
+		fmt.Println("Could not fetch remote Pull Requests")
+		os.Exit(1)
+	}
+	fmt.Println("Successfully fetched PR's for remote ref: ", CONFIG["DEFAULT_REMOTE_REF"])
 }
 
 func validateRepo(c *cli.Context) (err error){
@@ -160,10 +206,10 @@ func main() {
 
 		},
 		{
-			Name: "switch",
-			ShortName: "s",
-			Usage: "Switch default remote ref",
-			Action: switchRef,
+			Name: "fetch",
+			ShortName: "f",
+			Usage: "Fetch latest upstream Pull Requests",
+			Action: fetch,
 		},
 	}
 
