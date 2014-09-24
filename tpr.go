@@ -12,6 +12,10 @@ import (
 var CONFIG = make(map[string]string)
 var REMOTE_REFS = make([]string, 0)
 
+func upgrade(c * cli.Context) {
+	fmt.Println("Yet to be implemented...")
+}
+
 func listPr(c *cli.Context) {
 	if err := validateRepo(c); err != nil {
 		fmt.Println("Could not list Pull Reqests")
@@ -211,6 +215,12 @@ func main() {
 			ShortName: "f",
 			Usage: "Fetch latest upstream Pull Requests",
 			Action: fetch,
+		},
+		{
+			Name: "upgrade",
+			ShortName: "u",
+			Usage: "Upgrade tpr installation",
+			Action: upgrade,
 		},
 	}
 

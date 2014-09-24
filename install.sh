@@ -17,3 +17,9 @@ go_download() {
     wget $ARGS
   fi
 }
+
+mkdir -p $HOME/.bin
+go_download
+mv tpr $HOME/.bin
+echo PATH=$PATH:$HOME/.bin >> $HOME/.bashrc
+. $HOME/.bashrc 2>&1 > /dev/null
