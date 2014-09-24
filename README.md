@@ -38,6 +38,14 @@ GLOBAL OPTIONS:
 ```
 
 Installation:  
+
+Tested on ubuntu 12.04 and ubuntu 14.04
 ```
 wget -qO- https://raw.githubusercontent.com/ric03uec/tpr/v0.1.0/install.sh | bash 
 ```
+
+Contributing:
+
+  - Open issues asking for features
+  - +1 already open issues
+  - Send PR :)
